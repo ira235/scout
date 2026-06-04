@@ -52,7 +52,7 @@ export async function runCrawl(opts: { sinceMs?: number; cities?: string[] } = {
       if (parsed.success) for (const c of parsed.data.location.cities) cities.add(c);
     }
     if (cities.size === 0) {
-      ["Portland, OR", "Seattle, WA", "Austin, TX"].forEach((c) => cities.add(c));
+      ["Portland, OR", "Seattle, WA", "Austin, TX", "New York, NY"].forEach((c) => cities.add(c));
     }
   }
   console.log(`[crawl] cities=${Array.from(cities).join(" | ")}`);

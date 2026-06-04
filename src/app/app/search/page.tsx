@@ -24,7 +24,7 @@ const PROPERTY_LABELS: Record<PropertyType, string> = {
   APARTMENT: "Apartment",
 };
 
-const CITY_OPTIONS = ["Portland, OR", "Seattle, WA", "Austin, TX"];
+const CITY_OPTIONS = ["Portland, OR", "Seattle, WA", "Austin, TX", "New York, NY"];
 
 type Layout = "toggle" | "stacked" | "wizard";
 

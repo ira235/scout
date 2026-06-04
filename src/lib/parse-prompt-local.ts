@@ -22,6 +22,13 @@ const KNOWN_CITIES = [
   ["portland", "Portland, OR"],
   ["seattle", "Seattle, WA"],
   ["austin", "Austin, TX"],
+  ["new york", "New York, NY"],
+  ["nyc", "New York, NY"],
+  ["manhattan", "New York, NY"],
+  ["brooklyn", "New York, NY"],
+  ["queens", "New York, NY"],
+  ["bronx", "New York, NY"],
+  ["staten island", "New York, NY"],
 ] as const;
 
 const KNOWN_HOODS = [
