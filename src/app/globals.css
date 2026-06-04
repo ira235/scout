@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonts (Hanken Grotesk, JetBrains Mono) — served via Google Fonts CDN */
+@import url("https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+:root {
+  --sans: "Hanken Grotesk", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Default theme: sage. Overridden inline on <body> via theme provider. */
+  --primary: #2F5D4F;
+  --accent: #C9794A;
+  --bg: #EFEBE2;
+  --surface: #FBFAF5;
+  --ink: #1C201C;
+  --ink-soft: #444844;
+  --ink-faint: #7A7E7A;
+  --line: rgba(28, 32, 28, 0.10);
+  --green-deep: #1F3D33;
+  --green-tint: #DCE8DD;
+  --clay-deep: #84431F;
+  --clay-tint: #F1DECB;
+  --green: var(--primary);
+  --clay: var(--accent);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+
+button { font-family: var(--sans); }
+
+/* Custom range slider styling for criteria sliders */
+.scout-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 999px;
+  background: var(--primary);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  cursor: pointer;
+  margin-top: -8px;
+}
+.scout-range::-moz-range-thumb {
+  height: 22px; width: 22px; border-radius: 999px;
+  background: var(--primary); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+
+input, textarea, select {
+  font-family: var(--sans);
+}
+input:focus-visible, textarea:focus-visible, button:focus-visible, [role=button]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
