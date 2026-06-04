@@ -34,9 +34,11 @@ export interface ListingProvider {
 
 import { MockProvider } from "./providers/mock";
 import { RentcastProvider } from "./providers/rentcast";
+import { RapidApiProvider } from "./providers/rapidapi";
 
 export function getListingProvider(): ListingProvider {
   const which = (process.env.LISTING_PROVIDER || "mock").toLowerCase();
   if (which === "rentcast") return new RentcastProvider();
+  if (which === "rapidapi") return new RapidApiProvider();
   return new MockProvider();
 }

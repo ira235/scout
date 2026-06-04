@@ -79,8 +79,11 @@ RESEND_API_KEY
 RESEND_FROM            # e.g. "Scout <alerts@scout.app>"
 RESEND_WEBHOOK_SECRET  # optional, for /api/webhooks/email-events
 ANTHROPIC_API_KEY      # optional; falls back to a local heuristic parser
-LISTING_PROVIDER       # "mock" (default) or "rentcast"
+LISTING_PROVIDER       # "mock" (default), "rentcast", or "rapidapi"
 RENTCAST_API_KEY       # required when LISTING_PROVIDER=rentcast
+RAPIDAPI_KEY           # required when LISTING_PROVIDER=rapidapi
+RAPIDAPI_HOST          # defaults to us-real-estate-listings.p.rapidapi.com
+RAPIDAPI_LIMIT         # per-city page size (default 25)
 CRON_SECRET            # required header for /api/cron/*
 NEXT_PUBLIC_APP_URL    # e.g. http://localhost:3000
 UNSUB_SECRET           # signs unsubscribe / pause / freq email links
@@ -107,7 +110,25 @@ In dev: `npm run jobs:dev` ticks both every 60s for fast feedback.
 
 ## Provider swap
 
-`ListingProvider` (see `src/lib/listing-provider.ts`) abstracts the data source. Drop in a new adapter (Redfin/Zillow/MLS partner) by implementing `fetchNew` and `fetchById` and selecting it via `LISTING_PROVIDER=mine`.
+`ListingProvider` (see `src/lib/listing-provider.ts`) abstracts the data source. Three adapters ship today:
+
+- `mock` (default) — 30 in-memory seed listings across Portland, Seattle, Austin.
+- `rentcast` — calls `api.rentcast.io` (`/listings/sale`, `/listings/rental`).
+- `rapidapi` — calls the **US Real Estate Listings** API on RapidAPI (`/for-sale`, `/for-rent`, `/propertyDetails`).
+
+Drop in a new adapter (Redfin/Zillow/MLS partner) by implementing `fetchNew` and `fetchById` and registering it in `getListingProvider()`.
+
+### Using the RapidAPI provider
+
+```bash
+# .env.local
+LISTING_PROVIDER=rapidapi
+RAPIDAPI_KEY=<your X-RapidAPI-Key>
+RAPIDAPI_HOST=us-real-estate-listings.p.rapidapi.com
+RAPIDAPI_LIMIT=25
+```
+
+Cities are taken from each active alert's `criteria.location.cities` (e.g. `"Portland, OR"`). The crawler queries `/for-sale` and `/for-rent` once per city per tick, normalizes the response into `RawListing`, and upserts. Provider tag vocabulary (e.g. `central_air`, `garage_2_or_more`) is normalized into the canonical features in `src/lib/criteria.ts` — extend `FEATURE_SYNONYMS` there if you want better coverage.
 
 ## Match score
 
