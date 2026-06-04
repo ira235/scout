@@ -71,6 +71,26 @@ const FEW_SHOT: { user: string; assistant: string }[] = [
   },
 ];
 
+// Canonicalize known city aliases so the result matches what the crawler
+// stores (e.g. all NYC boroughs collapse to "New York, NY").
+const CITY_ALIASES: Record<string, string> = {
+  "manhattan, ny": "New York, NY",
+  "brooklyn, ny": "New York, NY",
+  "queens, ny": "New York, NY",
+  "bronx, ny": "New York, NY",
+  "staten island, ny": "New York, NY",
+  "nyc, ny": "New York, NY",
+  "new york": "New York, NY",
+  "new york city, ny": "New York, NY",
+};
+
+function canonicalizeCriteria(c: Criteria): Criteria {
+  const cities = Array.from(
+    new Set(c.location.cities.map((city) => CITY_ALIASES[city.toLowerCase().trim()] ?? city)),
+  );
+  return { ...c, location: { ...c.location, cities } };
+}
+
 function hashKey(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }
@@ -85,7 +105,7 @@ export async function parsePromptLLM(prompt: string): Promise<ParseResult> {
 
   if (!process.env.ANTHROPIC_API_KEY) {
     const local = localParsePrompt(trimmed);
-    const result: ParseResult = { ...local, source: "local" };
+    const result: ParseResult = { ...local, criteria: canonicalizeCriteria(local.criteria), source: "local" };
     CACHE.set(key, { value: result, expires: Date.now() + TTL_MS });
     return result;
   }
@@ -100,7 +120,7 @@ export async function parsePromptLLM(prompt: string): Promise<ParseResult> {
     messages.push({ role: "user", content: trimmed });
 
     const resp = await client.messages.create({
-      model: "claude-3-5-sonnet-latest",
+      model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
       max_tokens: 800,
       system: SYSTEM_PROMPT,
       messages,
@@ -112,7 +132,7 @@ export async function parsePromptLLM(prompt: string): Promise<ParseResult> {
     const json = raw.replace(/^```json\s*/i, "").replace(/```$/g, "").trim();
     const parsed = JSON.parse(json);
     const { _unparsed, _confidence, ...criteriaInput } = parsed;
-    const criteria = CriteriaSchema.parse(criteriaInput);
+    const criteria = canonicalizeCriteria(CriteriaSchema.parse(criteriaInput));
     const result: ParseResult = {
       criteria,
       confidence: typeof _confidence === "number" ? _confidence : 0.7,
@@ -124,7 +144,7 @@ export async function parsePromptLLM(prompt: string): Promise<ParseResult> {
   } catch (err) {
     console.error("[parse-prompt] anthropic failed, falling back:", err);
     const local = localParsePrompt(trimmed);
-    const result: ParseResult = { ...local, source: "local" };
+    const result: ParseResult = { ...local, criteria: canonicalizeCriteria(local.criteria), source: "local" };
     CACHE.set(key, { value: result, expires: Date.now() + TTL_MS });
     return result;
   }
