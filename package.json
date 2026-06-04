@@ -11,8 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "jobs:dev": "tsx scripts/jobs-dev.ts",
-    "seed": "tsx scripts/seed.ts",
+    "jobs:dev": "tsx --env-file=.env.local scripts/jobs-dev.ts",
+    "seed": "tsx --env-file=.env.local scripts/seed.ts",
     "email:preview": "email dev --dir emails"
   },
   "dependencies": {
