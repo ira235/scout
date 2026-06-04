@@ -22,6 +22,13 @@ export async function middleware(req: NextRequest) {
   const isProtected = pathname.startsWith("/app") || pathname.startsWith("/api");
   if (!isProtected) return NextResponse.next();
 
+  // Dev escape hatch: SCOUT_SKIP_AUTH=1 lets you preview the app without signing in.
+  // Pages and API routes that read auth.getUser() will see no user; some features
+  // (saving alerts, settings) will short-circuit, but the UI still renders.
+  if (process.env.SCOUT_SKIP_AUTH === "1") {
+    return NextResponse.next();
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
   if (!url || !anon) {

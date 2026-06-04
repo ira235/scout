@@ -138,6 +138,18 @@ See [`docs/match-score.md`](docs/match-score.md). Threshold: 70 (default), 85 if
 
 Five palettes (Sage & Clay, Cobalt & White, Navy & Sky, Ocean & Sand, Ink Blue & Bone). Picked in Settings; applied via CSS variables to both the app and the next outgoing email.
 
+## Dev: bypass auth
+
+Set `SCOUT_SKIP_AUTH=1` in `.env.local` to skip the sign-in gate. `/app/*` and `/api/*` will render without a user (DB-backed pages like Alerts/Settings will simply be empty until you sign in). Useful for previewing the UI quickly.
+
+```bash
+echo 'SCOUT_SKIP_AUTH=1' >> .env.local
+npm run dev
+# open http://localhost:3000/app/search
+```
+
+Never enable this in production.
+
 ## Non-goals (per spec)
 
 In-app messaging with agents, real-time price prediction, polygon-drawing UI (the `polygon` field is in the schema, but the drawing tool is deferred), native mobile apps.
