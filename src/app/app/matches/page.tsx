@@ -18,7 +18,7 @@ interface ScoredListing {
 
 const DEFAULT_CRITERIA: Criteria = {
   mode: "BUY",
-  location: { cities: ["Portland, OR"], neighborhoods: [], polygon: undefined },
+  location: { cities: ["New York, NY"], neighborhoods: [], polygon: undefined },
   priceMax: 70_000_000,
   priceMin: 0,
   bedsMin: 0,

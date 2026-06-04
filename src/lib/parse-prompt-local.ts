@@ -83,7 +83,7 @@ export function localParsePrompt(prompt: string): {
   // location
   const cities: string[] = [];
   for (const [needle, full] of KNOWN_CITIES) if (s.includes(needle)) cities.push(full);
-  if (cities.length === 0) cities.push("Portland, OR"); // default
+  if (cities.length === 0) cities.push("New York, NY"); // default
   const neighborhoods = KNOWN_HOODS.filter((h) => s.includes(h)).map(
     (h) => h.replace(/\b\w/g, (c) => c.toUpperCase())
   );
