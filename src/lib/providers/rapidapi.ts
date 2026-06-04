@@ -64,6 +64,8 @@ export class RapidApiProvider implements ListingProvider {
     if (!key) throw new Error("RAPIDAPI_KEY missing");
     const url = new URL(BASE + path);
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
+    const t0 = Date.now();
+    console.log(`[rapidapi] GET ${path}?${url.searchParams.toString()}`);
     const res = await fetch(url, {
       headers: {
         "x-rapidapi-host": HOST,
@@ -72,11 +74,15 @@ export class RapidApiProvider implements ListingProvider {
       },
       cache: "no-store",
     });
+    const ms = Date.now() - t0;
     if (!res.ok) {
       const body = await res.text().catch(() => "");
+      console.error(`[rapidapi] ${res.status} ${path} (${ms}ms): ${body.slice(0, 300)}`);
       throw new Error(`RapidAPI ${res.status} ${path}: ${body.slice(0, 200)}`);
     }
-    return (await res.json()) as T;
+    const json = (await res.json()) as T;
+    console.log(`[rapidapi] OK ${path} (${ms}ms)`);
+    return json;
   }
 
   private normalize(r: RapidListing, mode: "BUY" | "RENT", source: string): RawListing | null {
@@ -138,6 +144,7 @@ export class RapidApiProvider implements ListingProvider {
   async fetchNew({ since, cities }: { since: Date; cities: string[] }): Promise<RawListing[]> {
     const out: RawListing[] = [];
     const limit = Number(process.env.RAPIDAPI_LIMIT || 25);
+    console.log(`[rapidapi] fetchNew cities=${cities.join("|")} limit=${limit} since=${since.toISOString()}`);
 
     for (const c of cities) {
       for (const [path, mode, source] of [
@@ -145,21 +152,36 @@ export class RapidApiProvider implements ListingProvider {
         ["/for-rent", "RENT", "rapidapi/for-rent"],
       ] as const) {
         try {
-          const json = await this.req<{ listings?: RapidListing[] }>(path, {
+          const json = await this.req<{ listings?: RapidListing[]; totalResultCount?: number }>(path, {
             location: c,
             offset: 0,
             limit,
           });
-          for (const r of json.listings ?? []) {
-            if (r.list_date && new Date(r.list_date) < since) continue;
+          const raw = json.listings ?? [];
+          let kept = 0;
+          let dropped = 0;
+          for (const r of raw) {
+            if (r.list_date && new Date(r.list_date) < since) {
+              dropped++;
+              continue;
+            }
             const norm = this.normalize(r, mode, source);
-            if (norm) out.push(norm);
+            if (norm) {
+              out.push(norm);
+              kept++;
+            } else {
+              dropped++;
+            }
           }
+          console.log(
+            `[rapidapi] ${path} city="${c}" raw=${raw.length} kept=${kept} dropped=${dropped} total=${json.totalResultCount ?? "?"}`,
+          );
         } catch (e) {
           console.error(`[rapidapi] ${path} ${c} failed`, e);
         }
       }
     }
+    console.log(`[rapidapi] fetchNew returning ${out.length} normalized listings`);
     return out;
   }
 

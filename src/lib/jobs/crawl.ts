@@ -33,24 +33,35 @@ function rawToInsert(r: RawListing) {
   };
 }
 
-export async function runCrawl(opts: { sinceMs?: number } = {}) {
+export async function runCrawl(opts: { sinceMs?: number; cities?: string[] } = {}) {
   const sb = supabaseService();
   const provider = getListingProvider();
+  console.log(`[crawl] starting, provider=${provider.key}`);
+
+  let cities = new Set<string>();
+  if (opts.cities?.length) {
+    opts.cities.forEach((c) => cities.add(c));
+  } else {
+    const { data: alerts0, error: a0Err } = await sb
+      .from("alerts")
+      .select("id, criteria")
+      .eq("active", true);
+    if (a0Err) console.error("[crawl] alerts query failed", a0Err);
+    for (const a of alerts0 ?? []) {
+      const parsed = CriteriaSchema.safeParse(a.criteria);
+      if (parsed.success) for (const c of parsed.data.location.cities) cities.add(c);
+    }
+    if (cities.size === 0) {
+      ["Portland, OR", "Seattle, WA", "Austin, TX"].forEach((c) => cities.add(c));
+    }
+  }
+  console.log(`[crawl] cities=${Array.from(cities).join(" | ")}`);
 
   const { data: alerts, error: aErr } = await sb
     .from("alerts")
     .select("id, user_id, criteria, mode, frequency, active")
     .eq("active", true);
   if (aErr) throw aErr;
-
-  const cities = new Set<string>();
-  for (const a of alerts ?? []) {
-    const parsed = CriteriaSchema.safeParse(a.criteria);
-    if (parsed.success) for (const c of parsed.data.location.cities) cities.add(c);
-  }
-  if (cities.size === 0) {
-    ["Portland, OR", "Seattle, WA", "Austin, TX"].forEach((c) => cities.add(c));
-  }
 
   const { data: latest } = await sb
     .from("listings")
@@ -63,18 +74,24 @@ export async function runCrawl(opts: { sinceMs?: number } = {}) {
       : latest?.[0]?.fetched_at
       ? new Date(new Date(latest[0].fetched_at).getTime() - 60 * 60 * 1000)
       : new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+  console.log(`[crawl] fetching since ${since.toISOString()}`);
 
   const fresh = await provider.fetchNew({ since, cities: Array.from(cities) });
+  console.log(`[crawl] provider returned ${fresh.length} listings`);
   if (!fresh.length) return { fetched: 0, upserted: 0, matched: 0 };
 
   const ids = fresh.map((l) => l.id);
   const { data: existing } = await sb.from("listings").select("id").in("id", ids);
   const existingIds = new Set((existing ?? []).map((r) => r.id));
   const newOnes = fresh.filter((l) => !existingIds.has(l.id));
+  console.log(`[crawl] new=${newOnes.length} updates=${fresh.length - newOnes.length}`);
 
   const inserts = fresh.map(rawToInsert);
   const { error: upErr } = await sb.from("listings").upsert(inserts);
-  if (upErr) throw upErr;
+  if (upErr) {
+    console.error("[crawl] upsert failed", upErr);
+    throw upErr;
+  }
 
   if (!newOnes.length) return { fetched: fresh.length, upserted: fresh.length, matched: 0 };
 
@@ -128,5 +145,6 @@ export async function runCrawl(opts: { sinceMs?: number } = {}) {
     await sendInstantDigests(Array.from(instantAlertIds));
   }
 
+  console.log(`[crawl] done fetched=${fresh.length} matched=${matchRows.length}`);
   return { fetched: fresh.length, upserted: fresh.length, matched: matchRows.length };
 }
