@@ -34,6 +34,12 @@ export async function POST(req: Request) {
       .order("posted_at", { ascending: false })
       .limit(120);
     if (cities.length) q.in("city", cities);
+    if (c.bedsMin > 0) q.gte("beds", c.bedsMin);
+    if (c.bathsMin > 0) q.gte("baths", c.bathsMin);
+    if (c.priceMin > 0) q.gte("price", c.priceMin);
+    if (c.sqftMin) q.gte("sqft", c.sqftMin);
+    if (c.propertyTypes.length) q.in("property_type", c.propertyTypes);
+    if (c.features.length) q.contains("features", c.features);
     return q;
   }
 
