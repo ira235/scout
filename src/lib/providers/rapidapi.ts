@@ -52,6 +52,10 @@ function toPropertyType(t?: string | null, sub?: string | null): PropertyType {
   return "HOUSE";
 }
 
+// New York City: RapidAPI returns boroughs as the city; canonicalize so a search
+// for "New York, NY" finds them all. Borough is preserved in the `hood` field.
+const NYC_BOROUGHS = new Set(["manhattan", "brooklyn", "queens", "bronx", "staten island"]);
+
 function rapidId(r: RapidListing): string {
   return `rapidapi:${r.property_id || r.listing_id || crypto.randomUUID()}`;
 }
@@ -106,6 +110,14 @@ export class RapidApiProvider implements ListingProvider {
 
     const hood = r.location?.neighborhoods?.[0]?.name ?? null;
 
+    // Canonicalize NYC boroughs into "New York, NY".
+    let cityName = a.city;
+    let hoodOut = hood;
+    if (a.state_code === "NY" && NYC_BOROUGHS.has(a.city.toLowerCase())) {
+      hoodOut = hood || a.city;
+      cityName = "New York";
+    }
+
     const status: RawListing["status"] =
       r.status === "for_sale" || r.status === "for_rent" || r.status === "active"
         ? "ACTIVE"
@@ -122,8 +134,8 @@ export class RapidApiProvider implements ListingProvider {
       status,
       price: priceCents,
       address: a.line || "Unknown",
-      hood,
-      city: `${a.city}, ${a.state_code}`,
+      hood: hoodOut,
+      city: `${cityName}, ${a.state_code}`,
       state: a.state_code,
       zip: a.postal_code ?? null,
       lat,

@@ -100,6 +100,29 @@ The two specs required by the spec are:
 - `tests/e2e/create-alert-and-see-match.spec.ts`
 - `tests/e2e/digest-email-renders.spec.ts`
 
+### Populating data on demand
+
+Use `npm run crawl` to fire a one-shot fetch into the DB without waiting for the cron tick:
+
+```bash
+# Default: Portland, Seattle, Austin, New York
+npm run crawl
+
+# Specific cities (must include state code)
+npm run crawl -- "New York, NY"
+npm run crawl -- "Boston, MA" "San Francisco, CA"
+
+# Pull more rows per city (default RAPIDAPI_LIMIT=25)
+RAPIDAPI_LIMIT=200 npm run crawl -- "New York, NY"
+
+# Force re-pull of all listings regardless of list_date
+CRAWL_SINCE_MS=0 npm run crawl -- "New York, NY"
+```
+
+#### NYC borough handling
+
+The RapidAPI provider returns NYC listings tagged with the borough (Brooklyn, Manhattan, Queens, Bronx, Staten Island) as the city. The adapter canonicalizes all of them to `"New York, NY"` and preserves the borough in the `hood` field — so a single alert for `"New York, NY"` matches across all five boroughs.
+
 ## Cron / jobs
 
 In production these run via Vercel Cron (see `vercel.json`):

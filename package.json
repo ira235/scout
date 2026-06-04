@@ -13,6 +13,7 @@
     "test:e2e": "playwright test",
     "jobs:dev": "tsx --env-file=.env.local scripts/jobs-dev.ts",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "crawl": "tsx --env-file=.env.local scripts/crawl-once.ts",
     "email:preview": "email dev --dir emails"
   },
   "dependencies": {
