@@ -47,6 +47,28 @@ npm run dev               # app on :3000
 npm run jobs:dev          # in another tab: crawl + digest tick every 60s
 ```
 
+### Connecting a Supabase Cloud project (detailed)
+
+1. Create a project at https://supabase.com/dashboard → copy the project ref (e.g. `amagmbdtkcopvhtlmwns`).
+2. **Project Settings → API**:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL` (the `https://<ref>.supabase.co` form — *not* the dashboard URL)
+   - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (server only — never ship to browser)
+3. **Authentication → URL Configuration**:
+   - Site URL: `http://localhost:3000`
+   - Redirect URL: `http://localhost:3000/auth/callback`
+4. Apply the migration. The fastest route is the **SQL editor**:
+   - Open `https://supabase.com/dashboard/project/<ref>/sql/new`
+   - Paste the contents of `supabase/migrations/0001_init.sql`
+   - Click **Run**
+   - Alternatively use the CLI: `supabase login && supabase link --project-ref <ref> && supabase db push`. If you hit a `tls error / i/o timeout` connecting to port `5432`, your network blocks direct DB connections — use the SQL editor instead, or pass the Supavisor pooler URL (port `6543`) via `supabase db push --db-url '<pooler-uri>'`.
+5. Seed listings: `npm run seed` (uses the service role key to bypass RLS).
+6. Sign in via magic link at `http://localhost:3000/auth/sign-in` — the email will be sent by Supabase Auth to whatever address you submit.
+
+### Running without Supabase (offline demo)
+
+The mock provider + local prompt parser work without any keys. Only the landing page, `/app/search`, and the draft `/app/matches` view function — anything that needs auth or persistence will error. Set `LISTING_PROVIDER=mock` and any non-empty placeholder values for the Supabase keys.
+
 ### `.env` reference
 
 ```
