@@ -106,7 +106,39 @@ In production these run via Vercel Cron (see `vercel.json`):
 - `*/15 * * * *` → `POST /api/cron/crawl` (with `x-cron-secret`)
 - `0 * * * *`   → `POST /api/cron/digest`
 
-In dev: `npm run jobs:dev` ticks both every 60s for fast feedback.
+In dev: `npm run jobs:dev` ticks both every 60s for fast feedback. The script loads `.env.local` via both `dotenv` and `tsx --env-file=.env.local`.
+
+### On-demand fetching
+
+`/api/listings/search` will trigger a synchronous crawl for the requested cities when (a) the `listings` table has no rows for those cities and (b) `LISTING_PROVIDER` is not `mock`. This means a fresh user can sign in, build their first alert, and immediately see live results without waiting for the next cron tick.
+
+### Observability
+
+The crawl + search paths log structured lines so you can verify a live provider is working:
+
+```
+[search] mode=BUY cities=Portland, OR priceMax=$700000 bedsMin=3
+[search] no rows for cities, triggering on-demand crawl via provider=rapidapi
+[crawl] starting, provider=rapidapi
+[crawl] cities=Portland, OR
+[rapidapi] GET /for-sale?location=Portland%2C+OR&offset=0&limit=25
+[rapidapi] OK /for-sale (842ms)
+[rapidapi] /for-sale city="Portland, OR" raw=25 kept=24 dropped=1 total=8123
+[crawl] new=24 updates=0
+[crawl] done fetched=24 matched=0
+[search] db rows=24 scored>0=18
+```
+
+Look for `[rapidapi]` lines to confirm upstream calls are succeeding. Common reasons matches still come back empty:
+- City format must include the state code (`"Portland, OR"`, not `"Portland"`).
+- `priceMax` is in **cents** in the criteria — ensure the UI is multiplying by 100 (the prompt parser already does this).
+- Some providers return empty for `/for-rent` in certain cities — try BUY mode first.
+
+## Troubleshooting
+
+- **`SUPABASE_SERVICE_ROLE_KEY missing` from `npm run jobs:dev`** — make sure `.env.local` exists and has `SUPABASE_SERVICE_ROLE_KEY` set. The script forces dotenv loading via `tsx --env-file=.env.local`. The Supabase clients read env vars lazily so any timing issue with dotenv vs ESM hoisting is avoided.
+- **`supabase db push` errors with `tls error / i/o timeout` on port 5432** — your network blocks direct Postgres connections. Run the migration in the Supabase SQL editor instead, or pass the Supavisor pooler URL via `--db-url '...:6543/postgres'`.
+- **Search returns no listings on first use** — check the logs for `[crawl]` and `[rapidapi]` lines. If you see `total=0` from the provider, the city/state combo has no listings; try a different city.
 
 ## Provider swap
 
