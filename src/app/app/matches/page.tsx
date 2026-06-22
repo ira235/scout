@@ -40,6 +40,7 @@ export default function MatchesPage() {
   const [saving, setSaving] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [alertName, setAlertName] = useState("");
+  const [alertEmail, setAlertEmail] = useState("");
   const [alertFreq, setAlertFreq] = useState<DigestFreq>("DAILY");
 
   useEffect(() => {
@@ -92,7 +93,8 @@ export default function MatchesPage() {
       const res = await fetch("/api/alerts", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+  body: JSON.stringify({
+          email: alertEmail.trim(),
           name: alertName.trim(),
           mode: criteria.mode,
           criteria,
@@ -105,6 +107,8 @@ export default function MatchesPage() {
         alert(`Save failed: ${t?.error ?? res.status}`);
         return;
       }
+      // Remember email so Alerts page doesn't ask again
+      localStorage.setItem("scout-email", alertEmail.trim());
       router.push("/app/alerts");
     } finally {
       setSaving(false);
@@ -223,6 +227,13 @@ export default function MatchesPage() {
               onChange={(e) => setAlertName(e.target.value)}
               style={{ padding: 12, border: "1px solid var(--line)", borderRadius: 13, fontSize: 16 }}
             />
+<input
+              type="email"
+              placeholder="your@email.com"
+              value={alertEmail}
+              onChange={(e) => setAlertEmail(e.target.value)}
+              style={{ padding: 12, border: "1px solid var(--line)", borderRadius: 13, fontSize: 16 }}
+            />
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, color: "var(--ink-soft)", marginBottom: 8 }}>
                 Frequency
@@ -241,7 +252,7 @@ export default function MatchesPage() {
               <Btn variant="ghost" onClick={() => setShowSave(false)}>
                 Cancel
               </Btn>
-              <Btn onClick={saveAlert} disabled={saving || !alertName.trim()}>
+              <Btn onClick={saveAlert} disabled={saving || !alertName.trim() || ! alertEmail.trim()}>
                 {saving ? "Saving…" : "Save"}
               </Btn>
             </div>

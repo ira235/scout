@@ -31,10 +31,11 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["user_settings"]["Row"]>;
         Relationships: [];
       };
-      alerts: {
+    alerts: {
         Row: {
           id: string;
-          user_id: string;
+          user_id: string | null;
+          email: string | null;
           name: string;
           mode: ListingMode;
           criteria: unknown;
@@ -45,7 +46,8 @@ export interface Database {
           created_at: string;
         };
         Insert: {
-          user_id: string;
+          user_id?: string | null;
+          email?: string | null;
           name: string;
           mode: ListingMode;
           criteria: unknown;
