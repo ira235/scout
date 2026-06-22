@@ -360,12 +360,6 @@ function SearchPageInner() {
           See matches →
         </Btn>
       </div>
-
-      <div style={{ fontSize: 11, color: "var(--ink-faint)" }}>
-        Layout variant: <span style={{ fontFamily: "var(--mono)" }}>{layout}</span> · try{" "}
-        <a href="/app/search?style=stacked" style={{ color: "var(--primary)" }}>?style=stacked</a> ·{" "}
-        <a href="/app/search?style=wizard" style={{ color: "var(--primary)" }}>?style=wizard</a>
-      </div>
     </div>
   );
 }
