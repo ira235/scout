@@ -26,13 +26,14 @@ async function sendDigestForAlert(alertId: string, opts: { allowEmpty?: boolean 
 
   const { data: alert } = await sb
     .from("alerts")
-    .select("id, user_id, name, frequency, active, criteria")
+    .select("id, user_id, email, name, frequency, active, criteria")
     .eq("id", alertId)
     .single();
   if (!alert || !alert.active) return { skipped: true };
 
-  const { data: profile } = await sb.from("profiles").select("email, name").eq("id", alert.user_id).single();
-  if (!profile?.email) return { skipped: true };
+
+const profile = { email: alert.email, name: alert.name };
+if (!profile.email) return { skipped: true };
 
   const { data: settings } = await sb
     .from("user_settings")
@@ -42,13 +43,7 @@ async function sendDigestForAlert(alertId: string, opts: { allowEmpty?: boolean 
   const cap = settings?.per_email_cap ?? 10;
   const theme = (settings?.theme ?? "sage") as "sage" | "cobalt" | "navy" | "ocean" | "ink";
 
-  const { data: health } = await sb
-    .from("email_health")
-    .select("status")
-    .eq("email", profile.email)
-    .maybeSingle();
-  if (health && health.status !== "ok") return { skipped: true, reason: "email-unhealthy" };
-
+  
   const { data: pending } = await sb
     .from("alert_matches")
     .select("id, listing_id, match_score, listings:listing_id(*)")
@@ -122,25 +117,21 @@ export async function sendInstantDigests(alertIds: string[]) {
     }
   }
 }
-
 export async function runDigestTick(now = new Date()) {
   const sb = supabaseService();
   const { data: rows } = await sb
     .from("alerts")
-    .select("id, user_id, frequency, active, user_settings:user_id(send_hour, timezone)")
+    .select("id, email, frequency, active")
     .eq("active", true);
 
   const todo: string[] = [];
   for (const a of rows ?? []) {
     if (a.frequency === "INSTANT") continue;
-    const settings = a.user_settings as unknown as { send_hour: number; timezone: string } | null;
-    const tz = settings?.timezone ?? "America/Los_Angeles";
-    const sendHour = settings?.send_hour ?? 8;
-    if (hourInTZ(tz, now) !== sendHour) continue;
-    if (a.frequency === "WEEKLY" && dayInTZ(tz, now) !== "Mon") continue;
+    if (a.frequency === "WEEKLY" && dayInTZ("America/New_York", now) !== "Mon") continue;
     todo.push(a.id);
   }
 
+  
   let sent = 0;
   for (const id of todo) {
     const { data: alertMeta } = await sb.from("alerts").select("frequency").eq("id", id).single();
@@ -160,12 +151,12 @@ export async function previewDigestForAlert(alertId: string) {
   const sb = supabaseService();
   const { data: alert } = await sb
     .from("alerts")
-    .select("id, user_id, name, frequency")
+    .select("id, user_id, email, name, frequency")
     .eq("id", alertId)
     .single();
   if (!alert) return null;
 
-  const { data: profile } = await sb.from("profiles").select("email, name").eq("id", alert.user_id).single();
+  const profile = { email: alert.email as string, name: alert.name as string };
   const { data: settings } = await sb
     .from("user_settings")
     .select("per_email_cap, theme")
